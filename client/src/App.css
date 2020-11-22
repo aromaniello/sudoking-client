@@ -1,0 +1,20 @@
+.sk-board {
+  margin: 0 auto;
+  width: 400px;
+  height: auto;
+  padding-top:100px;
+}
+
+.sk-row {
+  margin: 0;
+  padding: 0;
+  border: 1px solid red;
+}
+
+.sk-cell {
+  width: 40px;
+  height: 40px;
+  display: inline-block;
+  vertical-align: middle;
+  text-align: center;
+}
