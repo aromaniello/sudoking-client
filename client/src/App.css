@@ -1,6 +1,6 @@
 .sk-board {
   margin: 0 auto;
-  width: 400px;
+  width: 600px;
   height: auto;
   padding-top:100px;
 }
@@ -17,4 +17,16 @@
   display: inline-block;
   vertical-align: middle;
   text-align: center;
+  border: 1px solid black;
+}
+
+.selected {
+  background-color: #8cc2db;
+}
+
+.number-button {
+  border: 1px solid blue;
+  width: 40px;
+  height: 40px;
+  margin-left: 5px;
 }
