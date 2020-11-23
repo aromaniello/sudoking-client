@@ -14,19 +14,44 @@
 .sk-cell {
   width: 40px;
   height: 40px;
-  display: inline-block;
+  /* display: inline-block; */
+  display: table-cell;
   vertical-align: middle;
   text-align: center;
   border: 1px solid black;
+  font-size: 1.6em;
 }
 
 .selected {
   background-color: #8cc2db;
 }
 
+.number-buttons {
+  margin-top: 5px;
+}
+
 .number-button {
   border: 1px solid blue;
   width: 40px;
   height: 40px;
-  margin-left: 5px;
+  margin-right: 7px;
+}
+
+.utility-buttons {
+  margin-top: 10px;
+}
+
+.utility-button {
+  height: 40px;
+  margin-right: 10px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.pencil-note {
+  font-size: small;
+}
+
+.custom {
+  color: blue;
 }
