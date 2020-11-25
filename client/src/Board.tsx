@@ -17,8 +17,8 @@ interface BoardState {
 
 interface Cell {
   value: NullableNumber,
-  isPencilNote: boolean,
-  isOriginal: boolean
+  isOriginal: boolean,
+  pencilNotes: number[]
 }
 
 export default class Board extends React.Component<BoardProps, BoardState> {
@@ -30,8 +30,8 @@ export default class Board extends React.Component<BoardProps, BoardState> {
       return range(this.props.columns).map((column) => {
         const cell: Cell = {
           value: null,
-          isPencilNote: false,
-          isOriginal: false
+          isOriginal: false,
+          pencilNotes: []
         };
 
         return cell;
@@ -69,24 +69,66 @@ export default class Board extends React.Component<BoardProps, BoardState> {
 
   tableCell(row: number, column: number) {
     const isSelected = this.state.selectedCell[0] === row && this.state.selectedCell[1] === column
-    const isPencilNote = this.state.board[row][column].isPencilNote;
-    const isCustom = !this.state.board[row][column].isOriginal;
-    const cellValue = this.state.board[row][column].value;
+    const cell = this.state.board[row][column];
 
-    const classes = [
+    // const hasValue = cell.value && cell.value >= 1 && cell.value <= 9 //TODO: move into cell function hasValidValue()
+    const hasPencilNotes = cell.pencilNotes.length > 0;
+    const isCustom = !cell.isOriginal;
+    const cellValue = cell.value;
+
+    let classes = [
       'sk-cell',
       isSelected ? 'selected' : '',
-      isPencilNote ? 'pencil-note' : '',
-      isCustom ? 'custom' : ''
-    ].join(' ');
+    ]
+    // isCustom ? 'custom' : ''
+    // ].join(' ');
+    // isPencilNote ? 'pencil-note' : '',
 
-    return (
-      <td id={`cell-${row}-${column}`} className={classes}
-          key={`cell-${row}-${column}`} data-row={row} data-column={column}
-          onClick={(event) => this.clickCell(event)}>
-          {cellValue ? cellValue : ''}
-      </td>
-    );
+    if (hasPencilNotes) {
+      classes.push('pencil-note')
+
+      return (
+        <td id={`cell-${row}-${column}`} className={classes.join(' ')}
+            key={`cell-${row}-${column}`} data-row={row} data-column={column}
+            onClick={(event) => this.clickCell(event)}>
+          <table>
+            <tbody>
+              <tr>
+                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 1)}</td>
+                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 2)}</td>
+                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 3)}</td>
+              </tr>
+              <tr>
+                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 4)}</td>
+                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 5)}</td>
+                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 6)}</td>
+              </tr>
+              <tr>
+                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 7)}</td>
+                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 8)}</td>
+                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 9)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+      );
+    } else {
+      // classes.push('custom')
+      if (isCustom)
+        classes.push('custom')
+
+      return (
+        <td id={`cell-${row}-${column}`} className={classes.join(' ')}
+        key={`cell-${row}-${column}`} data-row={row} data-column={column}
+        onClick={(event) => this.clickCell(event)}>
+        {cellValue ? cellValue : ''}
+        </td>
+      );
+    }
+  }
+
+  pencilNoteValue(cell: any, value: number) {
+    return cell.pencilNotes.includes(value) ? value : ' ';
   }
 
   clickCell(event: any) {
@@ -119,9 +161,7 @@ export default class Board extends React.Component<BoardProps, BoardState> {
   }
 
   clickNumberButton(event: any) {
-    console.log(`selected cell is ${this.selectedCellId()}`)
     if (this.cellIsSelected()) {
-      console.log("cell is selected")
       this.setSelectedCellValue(parseInt(event.target.dataset.number));
     }
   }
@@ -141,10 +181,11 @@ export default class Board extends React.Component<BoardProps, BoardState> {
   clickEraseButton() {
     if (this.cellIsSelected()) {
       this.setSelectedCellValue(null);
+      this.deleteSelectedCellPencilNotes();
     }
   }
 
-  setSelectedCellValue(newValue: NullableNumber) {
+  setSelectedCellValue(newValue: NullableNumber) { //TODO: change to pass in cell
     const row: NullableNumber = this.state.selectedCell[0];
     const column: NullableNumber = this.state.selectedCell[1];
 
@@ -154,11 +195,35 @@ export default class Board extends React.Component<BoardProps, BoardState> {
 
       this.setState((previousState) => {
         const newBoard: any = [...previousState.board];
+        const cell: any = newBoard[row][column];
 
-        newBoard[row][column].value = newValue;
+        if (this.state.inPencilNoteMode) {
+          if (!cell.pencilNotes.includes(newValue))
+            cell.pencilNotes.push(newValue); //TODO: might need to check that null is not passed
+          cell.value = null;
+        } else {
+          cell.value = newValue;
+          cell.pencilNotes = [];
+        }
 
-        if (this.state.inPencilNoteMode)
-          newBoard[row][column].isPencilNote = true;
+        return { ...previousState, board: newBoard }
+      });
+    }
+  }
+
+  deleteSelectedCellPencilNotes() { //TODO: change to pass in cell
+    const row: NullableNumber = this.state.selectedCell[0];
+    const column: NullableNumber = this.state.selectedCell[1];
+
+    // TODO: refactor to remove this condition
+    if (typeof row === 'number' && typeof column === 'number') {
+      if (this.state.board[row][column].isOriginal) return;
+
+      this.setState((previousState) => {
+        const newBoard: any = [...previousState.board];
+        const cell: any = newBoard[row][column];
+
+        cell.pencilNotes = [];
 
         return { ...previousState, board: newBoard }
       });
