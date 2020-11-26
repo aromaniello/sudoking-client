@@ -1,11 +1,11 @@
 import React from 'react';
-import logo from './logo.svg';
+import Board from './Board'
 import './App.css';
 
 function App() {
   return (
     <div>
-      Sudoking
+      <Board rows={9} columns={9} />
     </div>
   );
 }

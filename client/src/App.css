@@ -1,0 +1,65 @@
+.sk-board {
+  margin: 0 auto;
+  width: 600px;
+  height: auto;
+  padding-top:100px;
+}
+
+.sk-row {
+  margin: 0;
+  padding: 0;
+  border: 1px solid red;
+}
+
+.sk-cell {
+  width: 40px;
+  height: 40px;
+  /* display: inline-block; */
+  display: table-cell;
+  vertical-align: middle;
+  text-align: center;
+  border: 1px solid black;
+  font-size: 1.6em;
+}
+
+.selected {
+  background-color: #8cc2db;
+}
+
+.number-buttons {
+  margin-top: 5px;
+}
+
+.number-button {
+  border: 1px solid blue;
+  width: 40px;
+  height: 40px;
+  margin-right: 7px;
+}
+
+.utility-buttons {
+  margin-top: 10px;
+}
+
+.utility-button {
+  height: 40px;
+  margin-right: 10px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.pencil-note {
+  font-size: 0.6em;
+}
+
+.custom {
+  color: blue;
+}
+
+.pencil-note-cell {
+  width: 33%;
+  height: 33%;
+  text-align: center;
+  vertical-align: middle;
+  display: table-cell;
+}
