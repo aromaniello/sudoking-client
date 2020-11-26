@@ -5,18 +5,6 @@ import { range, remove } from 'lodash';
 
 type NullableNumber = number | null;
 
-interface BoardProps {
-  rows: number,
-  columns: number,
-  initialValues: NullableNumber[][]
-}
-
-interface BoardState {
-  selectedCell: [NullableNumber, NullableNumber],
-  board: any,
-  inPencilNoteMode: boolean
-}
-
 interface BoardCell {
   row: number,
   column: number,
@@ -27,7 +15,21 @@ interface BoardCell {
 
 type SudokuBoard = BoardCell[][];
 
-export default class Board extends React.Component<BoardProps, BoardState> {
+interface BoardProps {
+  rows: number,
+  columns: number,
+  initialValues: NullableNumber[][]
+}
+
+interface BoardState {
+  selectedCell: BoardCell | null,
+  board: any,
+  inPencilNoteMode: boolean
+}
+
+enum CellState { Value, PencilNote, Empty }
+
+class Board extends React.Component<BoardProps, BoardState> {
 
   constructor(props: BoardProps) {
     super(props);
@@ -49,13 +51,121 @@ export default class Board extends React.Component<BoardProps, BoardState> {
     })
 
     this.state = {
-      selectedCell: [null, null],
+      selectedCell: null,
       board: board,
       inPencilNoteMode: false
     }
 
     this.clickCell = this.clickCell.bind(this);
   }
+
+  cellState(cell: BoardCell) {
+    const pencilNotesLength = cell.pencilNotes.length;
+
+    if (cell.value && pencilNotesLength === 0) {
+      return CellState.Value;
+
+    } else if (cell.value === null && pencilNotesLength > 0) {
+      return CellState.PencilNote;
+
+    } else if (cell.value === null && pencilNotesLength === 0) {
+      return CellState.Empty;
+
+    } else {
+      throw new Error(`Invalid cell state: ${cell}`)
+    }
+  }
+
+  setCellValue(cell: BoardCell, newValue: NullableNumber) {
+    if (cell.isOriginal) return;
+
+    this.setState((previousState) => {
+      const newBoard: SudokuBoard = [...previousState.board];
+      const newCell: BoardCell = newBoard[cell.row][cell.column];
+
+      if (this.state.inPencilNoteMode) {
+        if (newValue && !newCell.pencilNotes.includes(newValue))
+          newCell.pencilNotes.push(newValue);
+        newCell.value = null;
+      } else {
+        newCell.value = newValue;
+        newCell.pencilNotes = [];
+      }
+
+      return { ...previousState, board: newBoard }
+    });
+  }
+
+  removePencilNote(cell: BoardCell, removeValue: number) {
+    this.setState((previousState) => {
+      const newBoard: SudokuBoard = [...previousState.board]
+      const pencilNotes: number[] = newBoard[cell.row][cell.column].pencilNotes;
+
+      remove(pencilNotes, (n) => n === removeValue)
+
+      return { ...previousState, board: newBoard }
+    });
+  }
+
+  deletePencilNotes(cell: BoardCell) {
+    if (cell.isOriginal) return;
+
+    this.setState((previousState) => {
+      const newBoard: SudokuBoard = [...previousState.board];
+      const newCell: BoardCell = newBoard[cell.row][cell.column];
+
+      newCell.pencilNotes = [];
+
+      return { ...previousState, board: newBoard }
+    });
+  }
+
+  // EVENT HANDLERS
+
+  clickCell(event: any) {
+    const row = parseInt(event.target.dataset.row);
+    const column = parseInt(event.target.dataset.column);
+    const cell = this.state.board[row][column];
+
+    this.setState((previousState) => {
+      return { ...previousState, selectedCell: cell }
+    })
+  }
+
+  clickNumberButton(event: any) {
+    const selectedCell = this.state.selectedCell;
+
+    if (!selectedCell) return;
+
+    const buttonNumber = parseInt(event.target.dataset.number);
+
+    if (this.state.inPencilNoteMode && selectedCell.pencilNotes.includes(buttonNumber)) {
+      this.removePencilNote(selectedCell, buttonNumber);
+    } else {
+      this.setCellValue(selectedCell, buttonNumber);
+    }
+  }
+
+  clickPencilModeButton() {
+    const newPencilNoteMode = !this.state.inPencilNoteMode;
+
+    this.setState((previousState) => {
+      return { ...previousState, inPencilNoteMode: newPencilNoteMode }
+    });
+  }
+
+  clickEraseButton() {
+    const selectedCell = this.state.selectedCell;
+    if (!selectedCell) return;
+
+    if (this.cellState(selectedCell) === CellState.Value) {
+      this.setCellValue(selectedCell, null);
+    } else if (this.cellState(selectedCell) === CellState.PencilNote) {
+      this.deletePencilNotes(selectedCell);
+    }
+  }
+
+  // RENDER METHODS
 
   renderBoard() {
     return range(this.props.rows).map((row) => {
@@ -72,152 +182,14 @@ export default class Board extends React.Component<BoardProps, BoardState> {
   }
 
   tableCell(row: number, column: number) {
-    const isSelected = this.state.selectedCell[0] === row && this.state.selectedCell[1] === column
+    const selectedCell = this.state.selectedCell;
+    const isSelected = !!selectedCell && selectedCell.row === row && selectedCell.column === column
     const cell = this.state.board[row][column];
 
     return (
       <Cell value={cell.value} row={row} column={column} pencilNotes={cell.pencilNotes}
             isOriginal={cell.isOriginal} isSelected={isSelected} clickCell={this.clickCell} />
     );
-  }
-
-  clickCell(event: any) {
-    const row = parseInt(event.target.dataset.row);
-    const column = parseInt(event.target.dataset.column);
-
-    this.setState((previousState) => {
-      return { ...previousState, selectedCell: [row, column] }
-    })
-  }
-
-  cellIsSelected() {
-    const row:    NullableNumber = this.state.selectedCell[0];
-    const column: NullableNumber = this.state.selectedCell[1];
-
-    const rowIsValid = typeof row === 'number'
-                       && row >= 0
-                       && row < this.props.rows;
-
-    const columnIsValid = typeof column === 'number'
-                          && column >= 0
-                          && column < this.props.columns;
-
-    return rowIsValid && columnIsValid;
-  }
-
-  clickNumberButton(event: any) {
-    const selectedCell = this.selectedCell();
-
-    if (!selectedCell) return;
-
-    const buttonNumber = parseInt(event.target.dataset.number);
-
-    if (this.inPencilNoteMode() && selectedCell.pencilNotes.includes(buttonNumber)) {
-      this.removeSelectedCellPencilNote(buttonNumber);
-    } else {
-      this.setSelectedCellValue(buttonNumber);
-    }
-  }
-
-  removeSelectedCellPencilNote(removeValue: number) {
-    const row: NullableNumber = this.state.selectedCell[0];
-    const column: NullableNumber = this.state.selectedCell[1];
-
-    if (typeof row === 'number' && typeof column === 'number') { //create new method and use guards?
-      this.setState((previousState) => {
-        const newBoard: any = [...previousState.board]
-        const pencilNotes: number[] = newBoard[row][column].pencilNotes;
-
-        remove(pencilNotes, (n) => n === removeValue)
-
-        return { ...previousState, board: newBoard }
-      });
-    }
-  }
-
-  inPencilNoteMode() {
-    return this.state.inPencilNoteMode;
-  }
-
-  clickPencilModeButton() {
-    const newPencilNoteMode = !this.state.inPencilNoteMode;
-
-    this.setState((previousState) => {
-      return { ...previousState, inPencilNoteMode: newPencilNoteMode }
-    });
-  }
-
-  clickEraseButton() {
-    if (this.cellIsSelected()) {
-      this.setSelectedCellValue(null);
-      this.deleteSelectedCellPencilNotes();
-    }
-  }
-
-  selectedCell() {
-    const row: NullableNumber = this.state.selectedCell[0];
-    const column: NullableNumber = this.state.selectedCell[1];
-
-    const rowIsValid = typeof row === 'number'
-                       && row >= 0
-                       && row < this.props.rows;
-
-    const columnIsValid = typeof column === 'number'
-                          && column >= 0
-                          && column < this.props.columns;
-
-    if (typeof row === 'number' && typeof column === 'number') { //TODO: need to remove
-      if (rowIsValid && columnIsValid) {
-        return this.state.board[row][column];
-      } else {
-        return null;
-      }
-    }
-  }
-
-  setSelectedCellValue(newValue: NullableNumber) { //TODO: change to pass in cell
-    const row: NullableNumber = this.state.selectedCell[0];
-    const column: NullableNumber = this.state.selectedCell[1];
-
-    // TODO: refactor to remove this condition
-    if (typeof row === 'number' && typeof column === 'number') {
-      if (this.state.board[row][column].isOriginal) return;
-
-      this.setState((previousState) => {
-        const newBoard: any = [...previousState.board];
-        const cell: any = newBoard[row][column];
-
-        if (this.state.inPencilNoteMode) {
-          if (!cell.pencilNotes.includes(newValue))
-            cell.pencilNotes.push(newValue); //TODO: might need to check that null is not passed
-          cell.value = null;
-        } else {
-          cell.value = newValue;
-          cell.pencilNotes = [];
-        }
-
-        return { ...previousState, board: newBoard }
-      });
-    }
-  }
-
-  deleteSelectedCellPencilNotes() { //TODO: change to pass in cell
-    const row: NullableNumber = this.state.selectedCell[0];
-    const column: NullableNumber = this.state.selectedCell[1];
-
-    // TODO: refactor to remove this condition
-    if (typeof row === 'number' && typeof column === 'number') {
-      if (this.state.board[row][column].isOriginal) return;
-
-      this.setState((previousState) => {
-        const newBoard: any = [...previousState.board];
-        const cell: any = newBoard[row][column];
-
-        cell.pencilNotes = [];
-
-        return { ...previousState, board: newBoard }
-      });
-    }
   }
 
   renderNumberButtons() {
@@ -266,3 +238,5 @@ export default class Board extends React.Component<BoardProps, BoardState> {
     );
   }
 }
+
+export default Board;
