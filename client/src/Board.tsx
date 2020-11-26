@@ -1,12 +1,14 @@
 import React from 'react';
-import './App.css';
+import Cell from './Cell'
+import './Board.css';
 import { range, remove } from 'lodash';
 
 type NullableNumber = number | null;
 
 interface BoardProps {
   rows: number,
-  columns: number
+  columns: number,
+  initialValues: NullableNumber[][]
 }
 
 interface BoardState {
@@ -15,22 +17,30 @@ interface BoardState {
   inPencilNoteMode: boolean
 }
 
-interface Cell {
+interface BoardCell {
+  row: number,
+  column: number,
   value: NullableNumber,
   isOriginal: boolean,
   pencilNotes: number[]
 }
+
+type SudokuBoard = BoardCell[][];
 
 export default class Board extends React.Component<BoardProps, BoardState> {
 
   constructor(props: BoardProps) {
     super(props);
 
-    const board = range(this.props.rows).map((row) => {
-      return range(this.props.columns).map((column) => {
-        const cell: Cell = {
-          value: null,
-          isOriginal: false,
+    const board: SudokuBoard = range(props.rows).map((row) => {
+      return range(props.columns).map((column) => {
+        const initialValue = props.initialValues[row][column];
+
+        const cell: BoardCell = {
+          row: row,
+          column: column,
+          value: initialValue ? initialValue : null,
+          isOriginal: !!initialValue,
           pencilNotes: []
         };
 
@@ -38,19 +48,13 @@ export default class Board extends React.Component<BoardProps, BoardState> {
       })
     })
 
-    //TODO: for testing purposes, will remove later
-    board[1][2].value = 5;
-    board[1][2].isOriginal = true;
-    board[6][3].value = 9;
-    board[6][3].isOriginal = true;
-    board[5][7].value = 2;
-    board[5][7].isOriginal = true;
-
     this.state = {
       selectedCell: [null, null],
       board: board,
       inPencilNoteMode: false
     }
+
+    this.clickCell = this.clickCell.bind(this);
   }
 
   renderBoard() {
@@ -71,59 +75,10 @@ export default class Board extends React.Component<BoardProps, BoardState> {
     const isSelected = this.state.selectedCell[0] === row && this.state.selectedCell[1] === column
     const cell = this.state.board[row][column];
 
-    const hasPencilNotes = cell.pencilNotes.length > 0;
-    const isCustom = !cell.isOriginal;
-    const cellValue = cell.value;
-
-    let classes = [
-      'sk-cell',
-      isSelected ? 'selected' : '',
-    ]
-
-    if (hasPencilNotes) {
-      classes.push('pencil-note')
-
-      return (
-        <td id={`cell-${row}-${column}`} className={classes.join(' ')}
-            key={`cell-${row}-${column}`} data-row={row} data-column={column}
-            onClick={(event) => this.clickCell(event)}>
-          <table>
-            <tbody>
-              {this.pencilNoteRow(cell, row, column, [1, 2, 3])}
-              {this.pencilNoteRow(cell, row, column, [4, 5, 6])}
-              {this.pencilNoteRow(cell, row, column, [7, 8, 9])}
-            </tbody>
-          </table>
-        </td>
-      );
-    } else {
-      if (isCustom)
-        classes.push('custom')
-
-      return (
-        <td id={`cell-${row}-${column}`} className={classes.join(' ')}
-        key={`cell-${row}-${column}`} data-row={row} data-column={column}
-        onClick={(event) => this.clickCell(event)}>
-        {cellValue ? cellValue : ''}
-        </td>
-      );
-    }
-  }
-
-  pencilNoteRow(cell: any, row: number, column: number, values: number[]) {
-    const cells = values.map((value) => {
-      return (
-        <td className="pencil-note-cell" key={`pencil-note-${row}-${column}-${value}`}>
-          {this.pencilNoteValue(cell, value)}
-        </td>
-      );
-    });
-
-    return (<tr>{cells}</tr>);
-  }
-
-  pencilNoteValue(cell: Cell, value: number) {
-    return cell.pencilNotes.includes(value) ? value : ' ';
+    return (
+      <Cell value={cell.value} row={row} column={column} pencilNotes={cell.pencilNotes}
+            isOriginal={cell.isOriginal} isSelected={isSelected} clickCell={this.clickCell} />
+    );
   }
 
   clickCell(event: any) {
@@ -133,11 +88,6 @@ export default class Board extends React.Component<BoardProps, BoardState> {
     this.setState((previousState) => {
       return { ...previousState, selectedCell: [row, column] }
     })
-  }
-
-  // TODO: remove if unused
-  selectedCellId() {
-    return `cell-${this.state.selectedCell[0]}-${this.state.selectedCell[1]}`;
   }
 
   cellIsSelected() {
