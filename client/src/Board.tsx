@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import { range } from 'lodash';
+import { range, remove } from 'lodash';
 
 type NullableNumber = number | null;
 
@@ -38,7 +38,7 @@ export default class Board extends React.Component<BoardProps, BoardState> {
       })
     })
 
-    // for testing purposes, will remove later
+    //TODO: for testing purposes, will remove later
     board[1][2].value = 5;
     board[1][2].isOriginal = true;
     board[6][3].value = 9;
@@ -71,7 +71,6 @@ export default class Board extends React.Component<BoardProps, BoardState> {
     const isSelected = this.state.selectedCell[0] === row && this.state.selectedCell[1] === column
     const cell = this.state.board[row][column];
 
-    // const hasValue = cell.value && cell.value >= 1 && cell.value <= 9 //TODO: move into cell function hasValidValue()
     const hasPencilNotes = cell.pencilNotes.length > 0;
     const isCustom = !cell.isOriginal;
     const cellValue = cell.value;
@@ -80,9 +79,6 @@ export default class Board extends React.Component<BoardProps, BoardState> {
       'sk-cell',
       isSelected ? 'selected' : '',
     ]
-    // isCustom ? 'custom' : ''
-    // ].join(' ');
-    // isPencilNote ? 'pencil-note' : '',
 
     if (hasPencilNotes) {
       classes.push('pencil-note')
@@ -93,27 +89,14 @@ export default class Board extends React.Component<BoardProps, BoardState> {
             onClick={(event) => this.clickCell(event)}>
           <table>
             <tbody>
-              <tr>
-                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 1)}</td>
-                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 2)}</td>
-                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 3)}</td>
-              </tr>
-              <tr>
-                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 4)}</td>
-                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 5)}</td>
-                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 6)}</td>
-              </tr>
-              <tr>
-                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 7)}</td>
-                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 8)}</td>
-                <td className="pencil-note-cell">{this.pencilNoteValue(cell, 9)}</td>
-              </tr>
+              {this.pencilNoteRow(cell, row, column, [1, 2, 3])}
+              {this.pencilNoteRow(cell, row, column, [4, 5, 6])}
+              {this.pencilNoteRow(cell, row, column, [7, 8, 9])}
             </tbody>
           </table>
         </td>
       );
     } else {
-      // classes.push('custom')
       if (isCustom)
         classes.push('custom')
 
@@ -127,7 +110,19 @@ export default class Board extends React.Component<BoardProps, BoardState> {
     }
   }
 
-  pencilNoteValue(cell: any, value: number) {
+  pencilNoteRow(cell: any, row: number, column: number, values: number[]) {
+    const cells = values.map((value) => {
+      return (
+        <td className="pencil-note-cell" key={`pencil-note-${row}-${column}-${value}`}>
+          {this.pencilNoteValue(cell, value)}
+        </td>
+      );
+    });
+
+    return (<tr>{cells}</tr>);
+  }
+
+  pencilNoteValue(cell: Cell, value: number) {
     return cell.pencilNotes.includes(value) ? value : ' ';
   }
 
@@ -161,27 +156,72 @@ export default class Board extends React.Component<BoardProps, BoardState> {
   }
 
   clickNumberButton(event: any) {
-    if (this.cellIsSelected()) {
-      this.setSelectedCellValue(parseInt(event.target.dataset.number));
+    const selectedCell = this.selectedCell();
+
+    if (!selectedCell) return;
+
+    const buttonNumber = parseInt(event.target.dataset.number);
+
+    if (this.inPencilNoteMode() && selectedCell.pencilNotes.includes(buttonNumber)) {
+      this.removeSelectedCellPencilNote(buttonNumber);
+    } else {
+      this.setSelectedCellValue(buttonNumber);
     }
   }
 
-  clickPencilModeButton() {
-    if (this.state.inPencilNoteMode) {
+  removeSelectedCellPencilNote(removeValue: number) {
+    const row: NullableNumber = this.state.selectedCell[0];
+    const column: NullableNumber = this.state.selectedCell[1];
+
+    if (typeof row === 'number' && typeof column === 'number') { //create new method and use guards?
       this.setState((previousState) => {
-        return { ...previousState, inPencilNoteMode: false }
-      });
-    } else {
-      this.setState((previousState) => {
-        return { ...previousState, inPencilNoteMode: true }
+        const newBoard: any = [...previousState.board]
+        const pencilNotes: number[] = newBoard[row][column].pencilNotes;
+
+        remove(pencilNotes, (n) => n === removeValue)
+
+        return { ...previousState, board: newBoard }
       });
     }
+  }
+
+  inPencilNoteMode() {
+    return this.state.inPencilNoteMode;
+  }
+
+  clickPencilModeButton() {
+    const newPencilNoteMode = !this.state.inPencilNoteMode;
+
+    this.setState((previousState) => {
+      return { ...previousState, inPencilNoteMode: newPencilNoteMode }
+    });
   }
 
   clickEraseButton() {
     if (this.cellIsSelected()) {
       this.setSelectedCellValue(null);
       this.deleteSelectedCellPencilNotes();
+    }
+  }
+
+  selectedCell() {
+    const row: NullableNumber = this.state.selectedCell[0];
+    const column: NullableNumber = this.state.selectedCell[1];
+
+    const rowIsValid = typeof row === 'number'
+                       && row >= 0
+                       && row < this.props.rows;
+
+    const columnIsValid = typeof column === 'number'
+                          && column >= 0
+                          && column < this.props.columns;
+
+    if (typeof row === 'number' && typeof column === 'number') { //TODO: need to remove
+      if (rowIsValid && columnIsValid) {
+        return this.state.board[row][column];
+      } else {
+        return null;
+      }
     }
   }
 
