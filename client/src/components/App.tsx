@@ -1,6 +1,6 @@
 import React from 'react';
 import Board from './Board'
-import './App.css';
+import '../stylesheets/App.css';
 import { range } from 'lodash';
 
 type NullableNumber = number | null;

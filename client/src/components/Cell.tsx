@@ -1,5 +1,5 @@
 import React from 'react';
-import './Cell.css';
+import '../stylesheets/Cell.css';
 
 interface CellProps {
   value: number | null,

@@ -1,6 +1,6 @@
 import React from 'react';
 import Cell from './Cell'
-import './Board.css';
+import '../stylesheets/Board.css';
 import { range, remove, countBy, forEach, compact, filter, reduce } from 'lodash';
 
 type NullableNumber = number | null;
