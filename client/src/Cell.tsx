@@ -8,21 +8,34 @@ interface CellProps {
   pencilNotes: number[],
   isOriginal: boolean,
   isSelected: boolean,
+  hasError: boolean,
   clickCell: any
 }
 
-const Cell = ({ value, row, column, pencilNotes, isOriginal, isSelected, clickCell }: CellProps) => {
+const Cell = ({ value, row, column, pencilNotes, isOriginal, isSelected, hasError, clickCell }: CellProps) => {
 
-  const hasPencilNotes = () => pencilNotes.length > 0;
+  const isCustom     = () => !isOriginal && pencilNotes.length === 0 && !hasError;
+  const isPencilNote = () => !value && pencilNotes.length > 0;
+  const showError    = () => hasError && !isOriginal;
 
   const cellClasses = () => {
     return [
       'sk-cell',
       isSelected ? 'selected' : '',
-      !isOriginal && !hasPencilNotes() ? 'custom' : '',
-      !value && hasPencilNotes ? 'pencil-note' : ''
-    ].join(' ');
-  }
+      showError() ? 'error' : '',
+      isCustom() ? 'custom' : '',
+      isPencilNote() ? 'pencil-note' : '',
+      hasGrayBackground() ? 'gray-background' : ''
+    ].join(' ').replace(/\s+/g, ' ');
+  };
+
+  const hasGrayBackground = () => {
+    return (row <= 2 && column <= 2) ||                            // nw quadrant
+           (row <= 2 && column >= 6) ||                            // ne quadrant
+           (row >= 3 && row <= 5 && column >= 3 && column <= 5) || // center quadrant
+           (row >= 6 && column <= 2) ||                            // sw quadrant
+           (row >= 6 && column >= 6);                              // se quadrant
+  };
 
   const renderPencilNotes = () => {
     return (
@@ -54,7 +67,7 @@ const Cell = ({ value, row, column, pencilNotes, isOriginal, isSelected, clickCe
     if (value) {
       return value;
 
-    } else if (hasPencilNotes()) {
+    } else if (pencilNotes.length > 0) {
       return renderPencilNotes();
 
     } else {
@@ -62,7 +75,6 @@ const Cell = ({ value, row, column, pencilNotes, isOriginal, isSelected, clickCe
     }
   };
 
-  //TODO: might be able to remove data-row and data-column
   return (
     <td id={`cell-${row}-${column}`} className={cellClasses()}
         key={`cell-${row}-${column}`} data-row={row} data-column={column}

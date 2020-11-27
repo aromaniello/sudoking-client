@@ -1,7 +1,7 @@
 import React from 'react';
 import Cell from './Cell'
 import './Board.css';
-import { range, remove } from 'lodash';
+import { range, remove, countBy, forEach, compact, filter, reduce } from 'lodash';
 
 type NullableNumber = number | null;
 
@@ -10,7 +10,8 @@ interface BoardCell {
   column: number,
   value: NullableNumber,
   isOriginal: boolean,
-  pencilNotes: number[]
+  pencilNotes: number[],
+  error: boolean
 }
 
 type SudokuBoard = BoardCell[][];
@@ -43,7 +44,8 @@ class Board extends React.Component<BoardProps, BoardState> {
           column: column,
           value: initialValue ? initialValue : null,
           isOriginal: !!initialValue,
-          pencilNotes: []
+          pencilNotes: [],
+          error: false
         };
 
         return cell;
@@ -80,8 +82,8 @@ class Board extends React.Component<BoardProps, BoardState> {
     if (cell.isOriginal) return;
 
     this.setState((previousState) => {
-      const newBoard: SudokuBoard = [...previousState.board];
-      const newCell: BoardCell = newBoard[cell.row][cell.column];
+      let newBoard: SudokuBoard = [...previousState.board];
+      let newCell: BoardCell = newBoard[cell.row][cell.column];
 
       if (this.state.inPencilNoteMode) {
         if (newValue && !newCell.pencilNotes.includes(newValue))
@@ -92,9 +94,19 @@ class Board extends React.Component<BoardProps, BoardState> {
         newCell.pencilNotes = [];
       }
 
+      newBoard = this.setErrorCells(newBoard);
+
+      if (this.checkSuccess(newBoard)) {
+        alert("yay!");
+      }
+
       return { ...previousState, board: newBoard }
     });
   }
+
+  checkSuccess(board: SudokuBoard) {
+    return this.countValueCells(board) === 81 && this.countErrorCells(board) === 0;
+  };
 
   removePencilNote(cell: BoardCell, removeValue: number) {
     this.setState((previousState) => {
@@ -118,6 +130,142 @@ class Board extends React.Component<BoardProps, BoardState> {
 
       return { ...previousState, board: newBoard }
     });
+  }
+
+  /**
+   * Checks the board for errors by row, column and quadrant. Sets the error flag to true
+   * in cells that have an error. Returns a new board with the error flags set.
+   *
+   * @param  {SudokuBoard} board The board to check for errors
+   * @return {SudokuBoard}       A new board with the error flags set
+   */
+  setErrorCells(board: SudokuBoard) {
+    const newBoard: SudokuBoard = [...board];
+
+    // reset errors
+    this.resetErrors(newBoard);
+
+    // check repeated numbers by row
+    this.setErrorsByRow(newBoard);
+
+    // check repeated numbers by column
+    this.setErrorsByRow(this.transposeBoard(newBoard));
+
+    // check repeated numbers by quadrant
+    this.setErrorsByRow(this.boardAsQuadrants(newBoard));
+
+    return newBoard;
+  }
+
+  /**
+   * Checks each row to see if a number is repeated and sets the error flag on each
+   * cell with that number. Modifies the board in place.
+   *
+   *
+   * @param  {SudokuBoard} board The board where to set errors
+   */
+  setErrorsByRow(board: SudokuBoard) {
+    board.forEach((row: BoardCell[]) => {
+      const rowValues: number[] = compact(row.map((cell) => cell.value));
+      const counts: any = countBy(rowValues);
+
+      forEach(counts, (count, value) => {
+        if (count > 1) {
+          const cellsWithError = filter(row, (cell) => cell.value === parseInt(value));
+
+          forEach(cellsWithError, (cell) => cell.error = true);
+        }
+      });
+    });
+  }
+
+  /**
+   * Sets the error flag of each cell in the board to false. Modifies the board in place.
+   *
+   * @param  {SudokuBoard} board The board to reset
+   */
+  resetErrors(board: SudokuBoard) {
+    for (let row=0; row < board.length; row++) {
+      for (let column=0; column < board[0].length; column++) {
+        board[row][column].error = false;
+      }
+    }
+  }
+
+  /**
+   * Returns a transpose of the board where the rows are the original board's columns
+   * and viceversa. The new board points to the original board's cells.
+   *
+   * @param  {SudokuBoard} board The board to transpose
+   * @return {SudokuBoard}       The transposed board
+   */
+  transposeBoard(board: SudokuBoard) {
+    const transposedBoard: SudokuBoard = range(9).map((_) => []);
+
+    for (let row=0; row < board.length; row++) {
+      for (let column=0; column < board[0].length; column++) {
+        transposedBoard[column][row] = board[row][column];
+      }
+    }
+
+    return transposedBoard;
+  };
+
+  /**
+   * Returns a new board where the rows contain the cells present in the original board's
+   * quadrants. The new board points to the original board's cells.
+   *
+   * @param  {SudokuBoard} board The original board
+   * @return {SudokuBoard}       The new board
+   */
+  boardAsQuadrants(board: SudokuBoard) {
+    const newBoard: SudokuBoard = range(9).map((_) => []);
+
+    for (let row=0; row < board.length; row++) {
+      for (let column=0; column < board[0].length; column++) {
+        const cell = board[row][column];
+
+        if (row <= 2) {
+          if (column <= 2) {                        // 1st quadrant
+            newBoard[0].push(cell);
+          } else if (column >= 3 && column <= 5) {  // 2nd quadrant
+            newBoard[1].push(cell);
+          } else if (column <= 8) {                 // 3rd quadrant
+            newBoard[2].push(cell);
+          }
+        } else if (row >= 3 && row <= 5) {
+          if (column <= 2) {                        // 4th quadrant
+            newBoard[3].push(cell);
+          } else if (column >= 3 && column <= 5) {  // 5th quadrant
+            newBoard[4].push(cell);
+          } else if (column <= 8) {                 // 6th quadrant
+            newBoard[5].push(cell);
+          }
+        } else if (row <= 8) {
+          if (column <= 2) {                        // 7th quadrant
+            newBoard[6].push(cell);
+          } else if (column >= 3 && column <= 5) {  // 8th quadrant
+            newBoard[7].push(cell);
+          } else if (column <= 8) {                 // 9th quadrant
+            newBoard[8].push(cell);
+          }
+        }
+      }
+    }
+
+    return newBoard;
+  }
+
+  countValueCells(board: SudokuBoard): number {
+    return reduce(board, (count, row) => {
+      return count + compact(row.map((cell: BoardCell) => cell.value)).length
+    }, 0);
+  }
+
+  countErrorCells(board: SudokuBoard): number {
+    return reduce(board, (count, row) => {
+      return count + compact(row.map((cell) => cell.error && !cell.isOriginal)).length
+    }, 0)
   }
 
   // EVENT HANDLERS
@@ -188,7 +336,8 @@ class Board extends React.Component<BoardProps, BoardState> {
 
     return (
       <Cell value={cell.value} row={row} column={column} pencilNotes={cell.pencilNotes}
-            isOriginal={cell.isOriginal} isSelected={isSelected} clickCell={this.clickCell} />
+            isOriginal={cell.isOriginal} isSelected={isSelected} hasError={cell.error}
+            clickCell={this.clickCell} />
     );
   }
 
