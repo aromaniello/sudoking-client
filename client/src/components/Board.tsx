@@ -142,41 +142,12 @@ class Board extends React.Component<BoardProps, BoardState> {
   setErrorCells(board: SudokuBoard) {
     const newBoard: SudokuBoard = [...board];
 
-    // reset errors
     this.resetErrors(newBoard);
-
-    // check repeated numbers by row
     this.setErrorsByRow(newBoard);
-
-    // check repeated numbers by column
-    this.setErrorsByRow(this.transposeBoard(newBoard));
-
-    // check repeated numbers by quadrant
-    this.setErrorsByRow(this.boardAsQuadrants(newBoard));
+    this.setErrorsByColumn(newBoard);
+    this.setErrorsByQuadrant(newBoard)
 
     return newBoard;
-  }
-
-  /**
-   * Checks each row to see if a number is repeated and sets the error flag on each
-   * cell with that number. Modifies the board in place.
-   *
-   *
-   * @param  {SudokuBoard} board The board where to set errors
-   */
-  setErrorsByRow(board: SudokuBoard) {
-    board.forEach((row: BoardCell[]) => {
-      const rowValues: number[] = compact(row.map((cell) => cell.value));
-      const counts: any = countBy(rowValues);
-
-      forEach(counts, (count, value) => {
-        if (count > 1) {
-          const cellsWithError = filter(row, (cell) => cell.value === parseInt(value));
-
-          forEach(cellsWithError, (cell) => cell.error = true);
-        }
-      });
-    });
   }
 
   /**
@@ -190,6 +161,38 @@ class Board extends React.Component<BoardProps, BoardState> {
         board[row][column].error = false;
       }
     }
+  }
+
+  /**
+   * Checks each row to see if a number is repeated and sets the error flag on each
+   * cell with that number. Modifies the board in place.
+   *
+   *
+   * @param  {SudokuBoard} board The board where to set errors
+   */
+  setErrorsByRow(board: SudokuBoard) {
+    forEach(board, (row: BoardCell[]) => {
+      const rowValues: number[] = compact(row.map((cell) => cell.value));
+      const counts: any = countBy(rowValues);
+
+      forEach(counts, (count, value) => {
+        if (count > 1) {
+          const cellsWithError = filter(row, (cell) => cell.value === parseInt(value));
+
+          forEach(cellsWithError, (cell) => cell.error = true);
+        }
+      });
+    });
+
+    return board;
+  }
+
+  setErrorsByColumn(board: SudokuBoard) {
+    return this.setErrorsByRow(this.transposeBoard(board));
+  }
+
+  setErrorsByQuadrant(board: SudokuBoard) {
+    return this.setErrorsByRow(this.boardAsQuadrants(board));
   }
 
   /**
@@ -219,7 +222,7 @@ class Board extends React.Component<BoardProps, BoardState> {
    * @return {SudokuBoard}       The new board
    */
   boardAsQuadrants(board: SudokuBoard) {
-    const newBoard: SudokuBoard = range(9).map((_) => []);
+    const quadrantBoard: SudokuBoard = range(9).map((_) => []);
 
     for (let row=0; row < board.length; row++) {
       for (let column=0; column < board[0].length; column++) {
@@ -227,33 +230,33 @@ class Board extends React.Component<BoardProps, BoardState> {
 
         if (row <= 2) {
           if (column <= 2) {                        // 1st quadrant
-            newBoard[0].push(cell);
+            quadrantBoard[0].push(cell);
           } else if (column >= 3 && column <= 5) {  // 2nd quadrant
-            newBoard[1].push(cell);
+            quadrantBoard[1].push(cell);
           } else if (column <= 8) {                 // 3rd quadrant
-            newBoard[2].push(cell);
+            quadrantBoard[2].push(cell);
           }
         } else if (row >= 3 && row <= 5) {
           if (column <= 2) {                        // 4th quadrant
-            newBoard[3].push(cell);
+            quadrantBoard[3].push(cell);
           } else if (column >= 3 && column <= 5) {  // 5th quadrant
-            newBoard[4].push(cell);
+            quadrantBoard[4].push(cell);
           } else if (column <= 8) {                 // 6th quadrant
-            newBoard[5].push(cell);
+            quadrantBoard[5].push(cell);
           }
         } else if (row <= 8) {
           if (column <= 2) {                        // 7th quadrant
-            newBoard[6].push(cell);
+            quadrantBoard[6].push(cell);
           } else if (column >= 3 && column <= 5) {  // 8th quadrant
-            newBoard[7].push(cell);
+            quadrantBoard[7].push(cell);
           } else if (column <= 8) {                 // 9th quadrant
-            newBoard[8].push(cell);
+            quadrantBoard[8].push(cell);
           }
         }
       }
     }
 
-    return newBoard;
+    return quadrantBoard;
   }
 
   countValueCells(board: SudokuBoard): number {
