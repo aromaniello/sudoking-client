@@ -42,7 +42,15 @@ function App() {
 
   return (
     <div>
+      <nav className="sk-nav">
+        <div className="sk-title">
+          <h1>Sudoking</h1>
+        </div>
+      </nav>
       <Board rows={9} columns={9} initialValues={sampleBoard()} />
+      <footer className="sk-footer">
+        Footer
+      </footer>
     </div>
   );
 }
