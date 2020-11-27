@@ -1,11 +1,10 @@
 .sk-cell {
-  width: 40px;
-  height: 40px;
-  display: table-cell;
+  width: 4rem;
+  height: 4rem;
   vertical-align: middle;
   text-align: center;
   border: 1px solid black;
-  font-size: 1.6em;
+  font-size: 2em;
 }
 
 .pencil-note {

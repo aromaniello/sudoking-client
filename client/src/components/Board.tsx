@@ -374,7 +374,7 @@ class Board extends React.Component<BoardProps, BoardState> {
   render() {
     return (
       <div className="sk-board">
-        <table>
+        <table className="sk-table">
           <tbody>
             {this.renderBoard()}
           </tbody>
