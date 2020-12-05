@@ -7,17 +7,13 @@
   font-size: 2em;
 }
 
-.pencil-note {
-  font-size: 0.6em;
-}
-
 .custom {
   color: blue;
 }
 
 .pencil-note-cell {
-  width: 33%;
-  height: 33%;
+  width: 1rem;
+  height: 1rem;
   text-align: center;
   vertical-align: middle;
   display: table-cell;
@@ -29,4 +25,8 @@
 
 .gray-background {
   background-color: #e3e3e3;
+}
+
+.pencil-notes-table {
+  font-size: 0.8rem;
 }

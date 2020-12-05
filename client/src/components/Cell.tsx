@@ -39,7 +39,7 @@ const Cell = ({ value, row, column, pencilNotes, isOriginal, isSelected, hasErro
 
   const renderPencilNotes = () => {
     return (
-      <table>
+      <table className="pencil-notes-table">
         <tbody>
           {pencilNoteRow([1, 2, 3])}
           {pencilNoteRow([4, 5, 6])}
@@ -52,9 +52,14 @@ const Cell = ({ value, row, column, pencilNotes, isOriginal, isSelected, hasErro
   const pencilNoteRow = (values: number[]) => {
     const cells = values.map((pencilNote) => {
       const pencilNoteText: number | string = pencilNotes.includes(pencilNote) ? pencilNote : '';
+      const cellKey = `pencil-note-${row}-${column}-${pencilNote}`;
 
       return (
-        <td className="pencil-note-cell" key={`pencil-note-${row}-${column}-${pencilNote}`}>
+        <td className="pencil-note-cell"
+            data-row={row}
+            data-column={column}
+            key={cellKey}
+            onClick={(event) => clickCell(event)}>
           {pencilNoteText}
         </td>
       );

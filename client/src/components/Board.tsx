@@ -1,7 +1,7 @@
 import React from 'react';
 import Cell from './Cell'
 import '../stylesheets/Board.css';
-import { range, remove, countBy, forEach, compact, filter, reduce } from 'lodash';
+import { range, remove, countBy, forEach, compact, filter, reduce, cloneDeep } from 'lodash';
 
 type NullableNumber = number | null;
 
@@ -23,9 +23,11 @@ interface BoardProps {
 }
 
 interface BoardState {
-  selectedCell: BoardCell | null,
+  selectedCell: [NullableNumber, NullableNumber],
   board: any,
-  inPencilNoteMode: boolean
+  inPencilNoteMode: boolean,
+  undoStates: SudokuBoard[],
+  redoStates: SudokuBoard[]
 }
 
 enum CellState { Value, PencilNote, Empty }
@@ -53,12 +55,25 @@ class Board extends React.Component<BoardProps, BoardState> {
     })
 
     this.state = {
-      selectedCell: null,
+      selectedCell: [null, null],
       board: board,
-      inPencilNoteMode: false
+      inPencilNoteMode: false,
+      undoStates: [],
+      redoStates: []
     }
 
     this.clickCell = this.clickCell.bind(this);
+  }
+
+  selectedCell(): BoardCell | null {
+    const row: NullableNumber = this.state.selectedCell[0];
+    const column: NullableNumber = this.state.selectedCell[1];
+
+    if (row !== null && row >= 0 && row <= 8 &&
+        column !== null && column >= 0 && column <= 8)
+      return this.state.board[row][column];
+    else
+      return null;
   }
 
   cellState(cell: BoardCell) {
@@ -67,10 +82,10 @@ class Board extends React.Component<BoardProps, BoardState> {
     if (cell.value && pencilNotesLength === 0) {
       return CellState.Value;
 
-    } else if (cell.value === null && pencilNotesLength > 0) {
+    } else if (!cell.value && pencilNotesLength > 0) {
       return CellState.PencilNote;
 
-    } else if (cell.value === null && pencilNotesLength === 0) {
+    } else if (!cell.value && pencilNotesLength === 0) {
       return CellState.Empty;
 
     } else {
@@ -82,8 +97,12 @@ class Board extends React.Component<BoardProps, BoardState> {
     if (cell.isOriginal) return;
 
     this.setState((previousState) => {
-      let newBoard: SudokuBoard = [...previousState.board];
-      let newCell: BoardCell = newBoard[cell.row][cell.column];
+      let currentBoard:  SudokuBoard   = cloneDeep(previousState.board);
+      let newUndoStates: SudokuBoard[] = cloneDeep(previousState.undoStates);
+      newUndoStates.push(currentBoard);
+
+      let newBoard: SudokuBoard = cloneDeep(previousState.board);
+      let newCell:  BoardCell   = newBoard[cell.row][cell.column];
 
       if (this.state.inPencilNoteMode) {
         if (newValue && !newCell.pencilNotes.includes(newValue))
@@ -96,11 +115,9 @@ class Board extends React.Component<BoardProps, BoardState> {
 
       newBoard = this.setErrorCells(newBoard);
 
-      if (this.checkSuccess(newBoard)) {
-        alert("yay!");
-      }
+      if (this.checkSuccess(newBoard)) alert("Success!");
 
-      return { ...previousState, board: newBoard }
+      return { ...previousState, board: newBoard, undoStates: newUndoStates };
     });
   }
 
@@ -110,12 +127,16 @@ class Board extends React.Component<BoardProps, BoardState> {
 
   removePencilNote(cell: BoardCell, removeValue: number) {
     this.setState((previousState) => {
-      const newBoard: SudokuBoard = [...previousState.board]
+      let currentBoard:  SudokuBoard   = cloneDeep(previousState.board);
+      let newUndoStates: SudokuBoard[] = cloneDeep(previousState.undoStates);
+      newUndoStates.push(currentBoard);
+
+      const newBoard: SudokuBoard = cloneDeep(previousState.board)
       const pencilNotes: number[] = newBoard[cell.row][cell.column].pencilNotes;
 
       remove(pencilNotes, (n) => n === removeValue)
 
-      return { ...previousState, board: newBoard }
+      return { ...previousState, board: newBoard, undoStates: newUndoStates };
     });
   }
 
@@ -123,12 +144,16 @@ class Board extends React.Component<BoardProps, BoardState> {
     if (cell.isOriginal) return;
 
     this.setState((previousState) => {
-      const newBoard: SudokuBoard = [...previousState.board];
-      const newCell: BoardCell = newBoard[cell.row][cell.column];
+      let currentBoard:  SudokuBoard   = cloneDeep(previousState.board);
+      let newUndoStates: SudokuBoard[] = cloneDeep(previousState.undoStates);
+      newUndoStates.push(currentBoard);
+
+      const newBoard: SudokuBoard = cloneDeep(previousState.board);
+      const newCell:  BoardCell   = newBoard[cell.row][cell.column];
 
       newCell.pencilNotes = [];
 
-      return { ...previousState, board: newBoard }
+      return { ...previousState, board: newBoard, undoStates: newUndoStates }
     });
   }
 
@@ -276,16 +301,18 @@ class Board extends React.Component<BoardProps, BoardState> {
   clickCell(event: any) {
     const row = parseInt(event.target.dataset.row);
     const column = parseInt(event.target.dataset.column);
-    const cell = this.state.board[row][column];
 
     this.setState((previousState) => {
-      return { ...previousState, selectedCell: cell }
-    })
+      const newState: BoardState = cloneDeep(previousState);
+
+      newState.selectedCell = [row, column];
+
+      return newState;
+    });
   }
 
   clickNumberButton(event: any) {
-    const selectedCell = this.state.selectedCell;
-
+    const selectedCell = this.selectedCell();
     if (!selectedCell) return;
 
     const buttonNumber = parseInt(event.target.dataset.number);
@@ -301,12 +328,16 @@ class Board extends React.Component<BoardProps, BoardState> {
     const newPencilNoteMode = !this.state.inPencilNoteMode;
 
     this.setState((previousState) => {
-      return { ...previousState, inPencilNoteMode: newPencilNoteMode }
+      const newState = cloneDeep(previousState);
+
+      // newState.inPencilNoteMode = newPencilNoteMode;
+
+      return { ...newState, inPencilNoteMode: newPencilNoteMode}; // TODO: fix and remove the double copy
     });
   }
 
   clickEraseButton() {
-    const selectedCell = this.state.selectedCell;
+    const selectedCell = this.selectedCell();
     if (!selectedCell) return;
 
     if (this.cellState(selectedCell) === CellState.Value) {
@@ -314,6 +345,35 @@ class Board extends React.Component<BoardProps, BoardState> {
     } else if (this.cellState(selectedCell) === CellState.PencilNote) {
       this.deletePencilNotes(selectedCell);
     }
+  }
+
+  clickUndoButton() {
+    if (this.state.undoStates.length === 0) return;
+
+    this.setState((previousState) => {
+      let currentBoard:  SudokuBoard   = cloneDeep(previousState.board);
+      let newUndoStates: SudokuBoard[] = cloneDeep(previousState.undoStates);
+      let newBoard:      any           = newUndoStates.pop();
+      let newRedoStates: SudokuBoard[] = cloneDeep(previousState.redoStates);
+      newRedoStates.push(currentBoard);
+
+      return { ...previousState, board: newBoard, undoStates: newUndoStates, redoStates: newRedoStates };
+    });
+  }
+
+  //TODO: refactor to eliminate repetition between undo and redo
+  clickRedoButton() {
+    if (this.state.redoStates.length === 0) return;
+
+    this.setState((previousState) => {
+      let currentBoard:  SudokuBoard   = cloneDeep(previousState.board);
+      let newRedoStates: SudokuBoard[] = cloneDeep(previousState.redoStates);
+      let newBoard:      any           = newRedoStates.pop();
+      let newUndoStates: SudokuBoard[] = cloneDeep(previousState.undoStates);
+      newUndoStates.push(currentBoard);
+
+      return { ...previousState, board: newBoard, undoStates: newUndoStates, redoStates: newRedoStates };
+    });
   }
 
   // RENDER METHODS
@@ -333,13 +393,20 @@ class Board extends React.Component<BoardProps, BoardState> {
   }
 
   tableCell(row: number, column: number) {
-    const selectedCell = this.state.selectedCell;
-    const isSelected = !!selectedCell && selectedCell.row === row && selectedCell.column === column
+    const selectedCell = this.selectedCell();
+    const isSelected = !!selectedCell && selectedCell.row === row && selectedCell.column === column;
     const cell = this.state.board[row][column];
+    const cellKey = `cell-${row}-${column}`;
 
     return (
-      <Cell value={cell.value} row={row} column={column} pencilNotes={cell.pencilNotes}
-            isOriginal={cell.isOriginal} isSelected={isSelected} hasError={cell.error}
+      <Cell value={cell.value}
+            row={row}
+            column={column}
+            key={cellKey}
+            pencilNotes={cell.pencilNotes}
+            isOriginal={cell.isOriginal}
+            isSelected={isSelected}
+            hasError={cell.error}
             clickCell={this.clickCell} />
     );
   }
@@ -369,6 +436,14 @@ class Board extends React.Component<BoardProps, BoardState> {
         <button id="erase-button" className="utility-button"
                 onClick={(e) => this.clickEraseButton()}>
           Erase
+        </button>
+        <button id="undo-button" className="utility-button"
+                onClick={(e) => this.clickUndoButton()}>
+          Undo
+        </button>
+        <button id="redo-button" className="utility-button"
+                onClick={(e) => this.clickRedoButton()}>
+          Redo
         </button>
       </div>
     );
