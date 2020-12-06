@@ -8,6 +8,7 @@ type NullableNumber = number | null;
 interface BoardCell {
   row: number,
   column: number,
+  quadrant: number,
   value: NullableNumber,
   isOriginal: boolean,
   pencilNotes: number[],
@@ -24,7 +25,7 @@ interface BoardProps {
 
 interface BoardState {
   selectedCell: [NullableNumber, NullableNumber],
-  board: any,
+  board: SudokuBoard,
   inPencilNoteMode: boolean,
   undoStates: SudokuBoard[],
   redoStates: SudokuBoard[]
@@ -44,6 +45,7 @@ class Board extends React.Component<BoardProps, BoardState> {
         const cell: BoardCell = {
           row: row,
           column: column,
+          quadrant: this.quadrantFor(row, column),
           value: initialValue ? initialValue : null,
           isOriginal: !!initialValue,
           pencilNotes: [],
@@ -63,6 +65,30 @@ class Board extends React.Component<BoardProps, BoardState> {
     }
 
     this.clickCell = this.clickCell.bind(this);
+  }
+
+  quadrantFor(row: number, column: number): number {
+    if (row <= 2 && column <= 2) {
+      return 0;
+    } else if (row <= 2 && column <= 5) {
+      return 1;
+    } else if (row <= 2 && column <= 8) {
+      return 2;
+    } else if (row <= 5 && column <= 2) {
+      return 3;
+    } else if (row <= 5 && column <= 5) {
+      return 4;
+    } else if (row <= 5 && column <= 8) {
+      return 5;
+    } else if (row <= 8 && column <= 2) {
+      return 6;
+    } else if (row <= 8 && column <= 5) {
+      return 7;
+    } else if (row <= 8 && column <= 8) {
+      return 8;
+    } else {
+      throw Error("invalid quadrant for row and column.");
+    }
   }
 
   selectedCell(): BoardCell | null {
@@ -111,9 +137,10 @@ class Board extends React.Component<BoardProps, BoardState> {
       } else {
         newCell.value = newValue;
         newCell.pencilNotes = [];
-      }
 
-      newBoard = this.setErrorCells(newBoard);
+        newBoard = this.removeRedundantPencilNotes(newBoard, newCell);
+        newBoard = this.setErrorCells(newBoard);
+      }
 
       if (this.checkSuccess(newBoard)) alert("Success!");
 
@@ -155,6 +182,41 @@ class Board extends React.Component<BoardProps, BoardState> {
 
       return { ...previousState, board: newBoard, undoStates: newUndoStates }
     });
+  }
+
+  isNumberComplete(board: SudokuBoard, number: number) {
+    let count = 0;
+
+    // TODO: change to forEach
+    for (let row=0; row < board.length; row++) {
+      for (let column=0; column < board[0].length; column++) {
+        if (board[row][column].value === number) {
+          if (board[row][column].error)
+            return false;
+
+          count += 1;
+        }
+      }
+    }
+    return count === 9;
+  }
+
+  removeRedundantPencilNotes(board: SudokuBoard, targetCell: BoardCell) {
+    if (targetCell.value === null) return board;
+
+    // TODO: change to forEach
+    for (let row=0; row < board.length; row++) {
+      for (let column=0; column < board[0].length; column++) {
+        const cell = board[row][column];
+
+        if ((cell.row === targetCell.row || cell.column === targetCell.column || cell.quadrant === targetCell.quadrant) &&
+            cell.pencilNotes.length > 0 && cell.pencilNotes.includes(targetCell.value)) {
+          remove(cell.pencilNotes, (num) => num === targetCell.value);
+        }
+      }
+    }
+
+    return board;
   }
 
   /**
@@ -414,23 +476,6 @@ class Board extends React.Component<BoardProps, BoardState> {
             hasError={cell.error}
             clickCell={this.clickCell} />
     );
-  }
-
-  isNumberComplete(board: SudokuBoard, number: number) {
-    let count = 0;
-
-    for (let row=0; row < board.length; row++) {
-      for (let column=0; column < board[0].length; column++) {
-        if (board[row][column].value === number) {
-          count += 1;
-          
-          if (board[row][column].error)
-            return false;
-        }
-      }
-    }
-
-    return count === 9;
   }
 
   renderNumberButtons() {

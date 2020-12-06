@@ -14,10 +14,6 @@
   border-collapse: collapse;
 }
 
-.selected {
-  background-color: #7D9FD3;
-}
-
 .number-buttons {
   margin-left: 0.5rem;
   margin-top: 0.5rem;
