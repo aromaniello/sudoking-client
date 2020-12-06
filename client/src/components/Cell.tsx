@@ -8,11 +8,12 @@ interface CellProps {
   pencilNotes: number[],
   isOriginal: boolean,
   isSelected: boolean,
+  isHighlighted: boolean,
   hasError: boolean,
   clickCell: any
 }
 
-const Cell = ({ value, row, column, pencilNotes, isOriginal, isSelected, hasError, clickCell }: CellProps) => {
+const Cell = ({ value, row, column, pencilNotes, isOriginal, isSelected, isHighlighted, hasError, clickCell }: CellProps) => {
 
   const isCustom     = () => !isOriginal && pencilNotes.length === 0 && !hasError;
   const isPencilNote = () => !value && pencilNotes.length > 0;
@@ -22,6 +23,7 @@ const Cell = ({ value, row, column, pencilNotes, isOriginal, isSelected, hasErro
     return [
       'sk-cell',
       isSelected ? 'selected' : '',
+      isHighlighted ? 'highlighted' : '',
       showError() ? 'error' : '',
       isCustom() ? 'custom' : '',
       isPencilNote() ? 'pencil-note' : '',

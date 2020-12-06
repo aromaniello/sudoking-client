@@ -396,6 +396,10 @@ class Board extends React.Component<BoardProps, BoardState> {
     const selectedCell = this.selectedCell();
     const isSelected = !!selectedCell && selectedCell.row === row && selectedCell.column === column;
     const cell = this.state.board[row][column];
+    const isHighlighted = !!selectedCell
+                          && selectedCell.value !== null
+                          && selectedCell !== cell
+                          && selectedCell.value === cell.value;
     const cellKey = `cell-${row}-${column}`;
 
     return (
@@ -406,18 +410,40 @@ class Board extends React.Component<BoardProps, BoardState> {
             pencilNotes={cell.pencilNotes}
             isOriginal={cell.isOriginal}
             isSelected={isSelected}
+            isHighlighted={isHighlighted}
             hasError={cell.error}
             clickCell={this.clickCell} />
     );
+  }
+
+  isNumberComplete(board: SudokuBoard, number: number) {
+    let count = 0;
+
+    for (let row=0; row < board.length; row++) {
+      for (let column=0; column < board[0].length; column++) {
+        if (board[row][column].value === number) {
+          count += 1;
+          
+          if (board[row][column].error)
+            return false;
+        }
+      }
+    }
+
+    return count === 9;
   }
 
   renderNumberButtons() {
     return range(9).map((index) => {
       const number = index + 1;
       const buttonId = `button-${number}`;
+      const classes = ['number-button'];
+      const isComplete = this.isNumberComplete(this.state.board, number);
+
+      if (isComplete) classes.push('complete');
 
       return (
-        <button id={buttonId} className="number-button" key={buttonId} data-number={number}
+        <button id={buttonId} className={classes.join(' ')} key={buttonId} data-number={number}
                 onClick={(event) => this.clickNumberButton(event)}>
           {number}
         </button>

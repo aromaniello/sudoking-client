@@ -8,7 +8,7 @@
 }
 
 .custom {
-  color: blue;
+  color: #1C75BC;
 }
 
 .pencil-note-cell {
@@ -29,4 +29,12 @@
 
 .pencil-notes-table {
   font-size: 0.8rem;
+}
+
+.selected {
+  background-color: #;
+}
+
+.highlighted {
+  background-color: #C6D2EC;
 }
