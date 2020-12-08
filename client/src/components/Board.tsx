@@ -500,22 +500,14 @@ class Board extends React.Component<BoardProps, BoardState> {
     return (
       <div className="utility-buttons">
         <button id="pencil-mode-button"
-                className={`utility-button ${this.state.inPencilNoteMode ? 'selected' : ''}`}
-                onClick={(e) => this.clickPencilModeButton()}>
-          Pencil Mode
-        </button>
-        <button id="erase-button" className="utility-button"
-                onClick={(e) => this.clickEraseButton()}>
-          Erase
-        </button>
-        <button id="undo-button" className="utility-button"
-                onClick={(e) => this.clickUndoButton()}>
-          Undo
-        </button>
-        <button id="redo-button" className="utility-button"
-                onClick={(e) => this.clickRedoButton()}>
-          Redo
-        </button>
+                className={`utility-button pencil-mode-button ${this.state.inPencilNoteMode ? 'selected' : ''}`}
+                onClick={(e) => this.clickPencilModeButton()}></button>
+        <button id="erase-button" className="utility-button erase-button"
+                onClick={(e) => this.clickEraseButton()}></button>
+        <button id="undo-button" className="utility-button undo-button"
+                onClick={(e) => this.clickUndoButton()}></button>
+        <button id="redo-button" className="utility-button redo-button"
+                onClick={(e) => this.clickRedoButton()}></button>
       </div>
     );
   }
@@ -528,10 +520,10 @@ class Board extends React.Component<BoardProps, BoardState> {
             {this.renderBoard()}
           </tbody>
         </table>
+        {this.renderUtilityButtons()}
         <div className="number-buttons">
           {this.renderNumberButtons()}
         </div>
-        {this.renderUtilityButtons()}
       </div>
     );
   }

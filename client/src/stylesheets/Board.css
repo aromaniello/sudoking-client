@@ -15,31 +15,59 @@
 }
 
 .number-buttons {
-  margin-left: 0.5rem;
   margin-top: 0.5rem;
 }
 
 .number-button {
-  border: 1px solid black;
-  width: 3.6rem;
-  height: 3.6rem;
-  margin-right: 0.5rem;
-  font-size: 1.2rem;
+  width: 4rem;
+  height: 4rem;
+  font-size: 2rem;
+  background-color: white;
+  border: none;
+  margin-right: 0.16rem;
+  padding: 0;
+  font-family: 'Helvetica';
 }
 
 .utility-buttons {
   margin-top: 0.5rem;
   margin-left: 0.5rem;
+  width: 600px;
 }
 
 .utility-button {
   height: 3.6rem;
-  margin-right: 10px;
   padding-left: 2rem;
   padding-right: 2rem;
   font-size: 1.2rem;
+  border: 0;
+  width: 20%;
+  margin-left: 1.5rem;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: white;
+}
+
+.erase-button {
+  background-image: url("../images/erase.svg");
+}
+
+.pencil-mode-button {
+  background-image: url("../images/pencil_note.svg");
+}
+
+.undo-button {
+  background-image: url("../images/undo.svg");
+}
+
+.redo-button {
+  background-image: url("../images/redo.svg");
 }
 
 .complete {
   color: red;
+}
+
+.number-button:focus {
+  border: none;
 }
